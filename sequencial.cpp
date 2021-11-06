@@ -8,14 +8,14 @@
 
 using namespace std;
 
-void separaDimencoes(size_t *n, size_t *m, std::ifstream *stream)
+void separaDimencoes(size_t *l, size_t *c, std::ifstream *stream)
 {
     string stringAuxiliar;
 
     *stream >> stringAuxiliar;
-    *n = stoi(stringAuxiliar);
+    *l = stoi(stringAuxiliar);
     *stream >> stringAuxiliar;
-    *m = stoi(stringAuxiliar);
+    *c = stoi(stringAuxiliar);
 
     /*stream->seekg(0, stream->end);
     size_t tamanho = stream->tellg();
@@ -27,47 +27,74 @@ void separaDimencoes(size_t *n, size_t *m, std::ifstream *stream)
     cout << stringAuxiliar << endl;*/
 }
 
-void pegaLinha(const size_t n, const size_t *m, vector<float> *linha, const map<string, string> *buffer)
+void pegaLinha(const size_t l, const size_t *c, vector<float> *linha, const map<string, string> *buffer)
 {
 
-    for (size_t j = 0; j < *m; j++)
+    for (size_t j = 0; j < *c; j++)
     {
+        //o valor l define qual linha será extraída
+        //o valor j percorre toda a linha extraindo cada valor
         string auxiliar = "c";
-        auxiliar += to_string(n);
+        auxiliar += to_string(l);
         auxiliar += to_string(j);
 
-        //cout << "erro aqui" << endl;
         linha->push_back(stof((buffer->at(auxiliar))));
     }
 }
 
-void pegaColuna(const size_t *n, const size_t m, vector<float> *coluna, const map<string, string> *buffer)
+void pegaColuna(const size_t *l, const size_t c, vector<float> *coluna, const map<string, string> *buffer)
 {
 
-    for (size_t j = 0; j < *n; j++)
+    for (size_t j = 0; j < *l; j++)
     {
+        //o valor c define qual coluna será estraída
+        //o valor j percorre toda a coluna extraindo cada valor
         string auxiliar = "c";
         auxiliar += to_string(j);
-        auxiliar += to_string(m);
+        auxiliar += to_string(c);
 
-        //cout << "erro aqui" << endl;
         coluna->push_back(stof((buffer->at(auxiliar))));
     }
 }
 
-void fazBuffer(size_t *n1, size_t *m1, size_t *n2, size_t *m2, std::ifstream *matrizColuna, std::ifstream *matrizLinha)
+void multiplicacao(size_t *l1, size_t *c1, size_t *l2, size_t *c2, std::ifstream *matrizLinha, std::ifstream *matrizColuna, std::ofstream *matrizResul)
 {
-    map<string, string> buffer;
+    map<string, string> bufferLinha, bufferColuna;
     vector<float> linha, coluna;
     while (!matrizLinha->eof())
     {
         string chave, valor;
         *matrizLinha >> chave;
         *matrizLinha >> valor;
-        buffer.insert(pair<string, string>(chave, valor));
+        bufferLinha.insert(pair<string, string>(chave, valor));
     }
-    pegaLinha(1, m1, &linha, &buffer);
-    pegaColuna(n1, 1, &coluna, &buffer);
+    while (!matrizColuna->eof())
+    {
+        string chave, valor;
+        *matrizColuna >> chave;
+        *matrizColuna >> valor;
+        bufferColuna.insert(pair<string, string>(chave, valor));
+    }
+    //Adicionando as dimenções da matriz
+    *matrizResul << *l1 << " " << *c2 << '\n';
+    for (size_t i = 0; i < *l1; i++)
+    {
+        for (size_t j = 0; j < *c2; j++)
+        {
+            //soma vai armazenar o valor da matriz resultado armazenado em ij
+            float soma = 0;
+            pegaLinha(i, c1, &linha, &bufferLinha);
+            pegaColuna(l2, j, &coluna, &bufferColuna);
+            for (size_t k = 0; k < *c2; k++)
+            {
+                soma += linha[k] * coluna[k];
+            }
+            *matrizResul << "c" << i + 1 << j + 1 << " " << soma << '\n';
+            linha.clear();
+            coluna.clear();
+        }
+    }
+
     // cout << "linha" << endl;
     // for (auto &e : linha)
     // {
@@ -90,7 +117,7 @@ int main(int argc, char const *argv[])
         exit(2);
     }
     ifstream matriz1, matriz2;
-    ofstream multi;
+    ofstream resul;
     string arquivo = "arquivos/";
     arquivo = arquivo + argv[1];
     //abrindo arquivos
@@ -104,30 +131,30 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
-    multi.open("arquivos/sequencial.txt", std::ofstream::out);
-    if (!multi)
+    resul.open("arquivos/sequencial.txt", std::ofstream::out);
+    if (!resul)
     {
         std::cerr << "Erro ao abrir arquivo de saida" << std::endl;
         exit(2);
     }
     //salvando as dimenções das matrizes
-    size_t *n1 = new size_t,
-           *m1 = new size_t,
-           *n2 = new size_t,
-           *m2 = new size_t;
-    separaDimencoes(n1, m1, &matriz1);
-    separaDimencoes(n2, m2, &matriz2);
-    if (*m1 != *n2)
+    size_t *l1 = new size_t,
+           *c1 = new size_t,
+           *l2 = new size_t,
+           *c2 = new size_t;
+    separaDimencoes(l1, c1, &matriz1);
+    separaDimencoes(l2, c2, &matriz2);
+    if (*c1 != *l2)
     {
         std::cerr << "O número de colunas da matriz1 deve ser igual ao número de linhas da matriz 2 " << std::endl;
         exit(3);
     }
 
-    fazBuffer(n1, m1, n2, m2, &matriz1, &matriz2);
+    multiplicacao(l1, c1, l2, c2, &matriz1, &matriz2, &resul);
     //liberando memória alocada
-    delete n1;
-    delete n2;
-    delete m1;
-    delete m2;
+    delete l1;
+    delete l2;
+    delete c1;
+    delete c2;
     return 0;
 }
