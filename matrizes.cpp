@@ -33,7 +33,7 @@ void formacaoDaMatriz(size_t n, size_t m, std::string arquivo)
                 matriz << i;
                 matriz << j;
                 matriz << " ";
-                matriz << rand() % 100 + 1;
+                matriz << rand() % 201 - 100;
                 matriz << std::endl;
             }
         }
