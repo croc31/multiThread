@@ -4,10 +4,13 @@
 #include <fstream>
 #include <map>
 #include <vector>
+#include <chrono>
 //#include <utility>
 
 using namespace std;
 
+//essa função extrai as dimençõesda matriz 'stream' e as armazena
+// nas variáveis 'l' e 'c'
 void separaDimencoes(size_t *l, size_t *c, std::ifstream *stream)
 {
     string stringAuxiliar;
@@ -16,17 +19,8 @@ void separaDimencoes(size_t *l, size_t *c, std::ifstream *stream)
     *l = stoi(stringAuxiliar);
     *stream >> stringAuxiliar;
     *c = stoi(stringAuxiliar);
-
-    /*stream->seekg(0, stream->end);
-    size_t tamanho = stream->tellg();
-    stream->seekg(0, stream->beg);
-
-    (*stream).seekg(tamanho / 2);
-    (*stream).ignore(256, 'c');
-    *stream >> stringAuxiliar;
-    cout << stringAuxiliar << endl;*/
 }
-
+//essa função guarda no vector 'linha' a linha numero 'l'
 void pegaLinha(const size_t l, const size_t *c, vector<float> *linha, const map<string, string> *buffer)
 {
 
@@ -41,7 +35,7 @@ void pegaLinha(const size_t l, const size_t *c, vector<float> *linha, const map<
         linha->push_back(stof((buffer->at(auxiliar))));
     }
 }
-
+//essa função guarda no vector 'coluna' a coluna numero 'c'
 void pegaColuna(const size_t *l, const size_t c, vector<float> *coluna, const map<string, string> *buffer)
 {
 
@@ -57,10 +51,28 @@ void pegaColuna(const size_t *l, const size_t c, vector<float> *coluna, const ma
     }
 }
 
-void multiplicacao(size_t *l1, size_t *c1, size_t *l2, size_t *c2, std::ifstream *matrizLinha, std::ifstream *matrizColuna, std::ofstream *matrizResul)
+void multiplicacao(std::ifstream *matrizLinha, std::ifstream *matrizColuna, std::ofstream *matrizResul)
 {
     map<string, string> bufferLinha, bufferColuna;
     vector<float> linha, coluna;
+    size_t *l1 = new size_t,
+           *c1 = new size_t,
+           *l2 = new size_t,
+           *c2 = new size_t;
+
+    //salvando as dimenções das matrizes
+    separaDimencoes(l1, c1, matrizLinha);
+    separaDimencoes(l2, c2, matrizColuna);
+    //caso o número de colunas da matriz 1 seja diferente do número de linhas
+    //da matriz 2 a multiplicação não pode ser feita
+    if (*c1 != *l2)
+    {
+        std::cerr << "O número de colunas da matriz1 deve ser igual ao número de linhas da matriz 2 " << std::endl;
+        exit(3);
+    }
+
+    //transformando as matrizes em objetos map para deixar a busca por
+    //elementos mais eficiente
     while (!matrizLinha->eof())
     {
         string chave, valor;
@@ -75,13 +87,14 @@ void multiplicacao(size_t *l1, size_t *c1, size_t *l2, size_t *c2, std::ifstream
         *matrizColuna >> valor;
         bufferColuna.insert(pair<string, string>(chave, valor));
     }
-    //Adicionando as dimenções da matriz
+
+    //Adicionando as dimenções da matriz resultante
     *matrizResul << *l1 << " " << *c2 << '\n';
     for (size_t i = 0; i < *l1; i++)
     {
         for (size_t j = 0; j < *c2; j++)
         {
-            //soma vai armazenar o valor da matriz resultado armazenado em ij
+            //Soma vai armazenar o valor da matriz resultado armazenado na posição ij
             float soma = 0;
             pegaLinha(i, c1, &linha, &bufferLinha);
             pegaColuna(l2, j, &coluna, &bufferColuna);
@@ -94,18 +107,11 @@ void multiplicacao(size_t *l1, size_t *c1, size_t *l2, size_t *c2, std::ifstream
             coluna.clear();
         }
     }
-
-    // cout << "linha" << endl;
-    // for (auto &e : linha)
-    // {
-    //     cout << e << endl;
-    // }
-    // cout << '\n'
-    //      << "Coluna" << endl;
-    // for (auto &e : coluna)
-    // {
-    //     cout << e << endl;
-    // }
+    //liberando memória alocada
+    delete l1;
+    delete l2;
+    delete c1;
+    delete c2;
 }
 
 int main(int argc, char const *argv[])
@@ -137,24 +143,13 @@ int main(int argc, char const *argv[])
         std::cerr << "Erro ao abrir arquivo de saida" << std::endl;
         exit(2);
     }
-    //salvando as dimenções das matrizes
-    size_t *l1 = new size_t,
-           *c1 = new size_t,
-           *l2 = new size_t,
-           *c2 = new size_t;
-    separaDimencoes(l1, c1, &matriz1);
-    separaDimencoes(l2, c2, &matriz2);
-    if (*c1 != *l2)
-    {
-        std::cerr << "O número de colunas da matriz1 deve ser igual ao número de linhas da matriz 2 " << std::endl;
-        exit(3);
-    }
+    std::chrono::steady_clock::time_point inicio, final;
 
-    multiplicacao(l1, c1, l2, c2, &matriz1, &matriz2, &resul);
-    //liberando memória alocada
-    delete l1;
-    delete l2;
-    delete c1;
-    delete c2;
+    inicio = std::chrono::steady_clock::now();
+    multiplicacao(&matriz1, &matriz2, &resul);
+    final = std::chrono::steady_clock::now();
+    std::chrono::duration<double> duracao = std::chrono::duration_cast<std::chrono::duration<double>>(final - inicio);
+    resul << duracao.count();
+
     return 0;
 }
