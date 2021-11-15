@@ -150,6 +150,8 @@ int main(int argc, char const *argv[])
     final = std::chrono::steady_clock::now();
     std::chrono::duration<double> duracao = std::chrono::duration_cast<std::chrono::duration<double>>(final - inicio);
     resul << duracao.count();
-
+    matriz1.close();
+    matriz2.close();
+    resul.close();
     return 0;
 }
