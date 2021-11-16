@@ -8,6 +8,14 @@
 #include <unistd.h>
 
 using namespace std;
+pthread_t *threads = NULL;
+size_t *l1,
+    *c1,
+    *l2,
+    *c2,
+    *p;
+vector<vector<float>> bufferLinha, bufferColuna;
+void *thread_return;
 
 //essa função extrai as dimençõesda matriz 'stream' e as armazena
 // nas variáveis 'l' e 'c'
@@ -20,39 +28,45 @@ void separaDimencoes(size_t *l, size_t *c, std::ifstream *stream)
     *stream >> stringAuxiliar;
     *c = stoi(stringAuxiliar);
 }
-//essa função guarda no vector 'linha' a linha numero 'l'
-void pegaLinha(const size_t l, const size_t *c, vector<float> *linha, const vector<vector<string>> *buffer)
-{
+// //essa função guarda no vector 'linha' a linha numero 'l'
+// void pegaLinha(const size_t l, const size_t *c, vector<float> *linha)
+// {
 
-    for (size_t j = 0; j < *c; j++)
-    {
-        //o valor l define qual linha será extraída
-        //o valor j percorre toda a linha extraindo cada valor
-        string auxiliar = (*buffer)[l][j];
-        linha->push_back(stof(auxiliar));
-    }
-}
-//essa função guarda no vector 'coluna' a coluna numero 'c'
-void pegaColuna(const size_t *l, const size_t c, vector<float> *coluna, const vector<vector<string>> *buffer)
-{
+//     for (size_t j = 0; j < *c; j++)
+//     {
+//         //o valor l define qual linha será extraída
+//         //o valor j percorre toda a linha extraindo cada valor
+//         float auxiliar = bufferLinha[l][j];
+//         linha->push_back(auxiliar);
+//         //cout << "posi " << l << " " << j << endl;
+//     }
+// }
+// //essa função guarda no vector 'coluna' a coluna numero 'c'
+// void pegaColuna(const size_t *l, const size_t c, vector<float> *coluna)
+// {
 
-    for (size_t j = 0; j < *l; j++)
-    {
-        //o valor c define qual coluna será estraída
-        //o valor j percorre toda a coluna extraindo cada valor
-        string auxiliar = (*buffer)[j][c];
+//     for (size_t j = 0; j < *l; j++)
+//     {
+//         //o valor c define qual coluna será estraída
+//         //o valor j percorre toda a coluna extraindo cada valor
+//         float auxiliar = bufferColuna[j][c];
 
-        coluna->push_back(stof(auxiliar));
-    }
-}
+//         coluna->push_back(auxiliar);
+//     }
+// }
 
 //esse método controla todas as chamadas de multiplicação
-void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const size_t *c2, const size_t *p, const size_t o, vector<vector<string>> *matrizLinha, vector<vector<string>> *matrizColuna)
+void *multiplicacao(void *o)
 {
+    if ((int)(size_t)o > 0)
+    {
+        cout << (int)(size_t)o << endl;
+        pthread_join(threads[((size_t)o) - 1], &thread_return);
+    }
 
     ofstream matrizResul;
-    string caminho = "arquivos/processos";
-    caminho += to_string(o);
+    string caminho = "arquivos/thread";
+    caminho += to_string((size_t)o);
     caminho += ".txt";
     matrizResul.open(caminho, std::ofstream::out);
     if (!matrizResul)
@@ -68,18 +82,19 @@ void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const s
     //Adicionando as dimenções da matriz resultante
     matrizResul << *l1 << " " << *c2 << '\n';
     size_t i, j, count = 0;
-    i = int((*p * o) / *c2);
-    j = (*p * o) % *c2;
+    i = int((*p * (int)(size_t)o) / *c2);
+    j = (*p * (int)(size_t)o) % *c2;
     while (count < *p)
     {
         //Soma vai armazenar o valor da matriz resultado armazenado na posição ij
         float soma = 0;
-        pegaLinha(i, c1, &linha, matrizLinha);
-        pegaColuna(l2, j, &coluna, matrizColuna);
+        // pegaLinha(i, c1, &linha);
+        // pegaColuna(l2, j, &coluna);
         for (size_t k = 0; k < *c1; k++)
         {
-            soma += linha[k] * coluna[k];
-            //cout << linha.size() << " " << coluna.size() << endl;
+            soma += bufferLinha[i][k] * bufferColuna[k][j];
+            //cout << linha[k] << " + " << coluna[k] << endl;
+            //cout << soma << endl;
         }
         matrizResul << "c" << i + 1 << j + 1 << " " << soma << '\n';
         linha.clear();
@@ -89,7 +104,7 @@ void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const s
         if (j >= *c2)
         {
             i++;
-            j = int((*p * o) / *c2);
+            j = int((*p * (int)(size_t)o) / *c2);
             if (i >= *l1)
             {
                 break;
@@ -100,23 +115,9 @@ void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const s
     final = std::chrono::steady_clock::now();
     std::chrono::duration<double> duracao = std::chrono::duration_cast<std::chrono::duration<double>>(final - inicio);
     matrizResul << duracao.count();
-    // for (size_t i = 0; i < *l1; i++)
-    // {
-    //     for (size_t j = 0; j < *c2; j++)
-    //     {
-    //         //Soma vai armazenar o valor da matriz resultado armazenado na posição ij
-    //         float soma = 0;
-    //         pegaLinha(i, c1, &linha, &bufferLinha);
-    //         pegaColuna(l2, j, &coluna, &bufferColuna);
-    //         for (size_t k = 0; k < *c2; k++)
-    //         {
-    //             soma += linha[k] * coluna[k];
-    //         }
-    //         *matrizResul << "c" << i + 1 <<j + 1 << " " << soma << '\n';
-    //         linha.clear();
-    //         coluna.clear();
-    //     }
-    // }
+    cout << "fim do filho " << (size_t)o << endl;
+    sleep(1);
+    pthread_exit(NULL);
 }
 
 int main(int argc, char const *argv[])
@@ -140,12 +141,15 @@ int main(int argc, char const *argv[])
         std::cerr << "Erro ao abrir arquivo de entrada" << std::endl;
         exit(1);
     }
-    size_t *l1 = new size_t,
-           *c1 = new size_t,
-           *l2 = new size_t,
-           *c2 = new size_t,
-           *p = new size_t;
+    //alocando o espaço das variáveis
+
+    l1 = new size_t;
+    c1 = new size_t;
+    l2 = new size_t;
+    c2 = new size_t;
+    p = new size_t;
     *p = stoi(argv[3]);
+    threads = new pthread_t[(*l1 * *c2) / (*p)];
     //salvando as dimenções das matrizes
     separaDimencoes(l1, c1, &matriz1);
     separaDimencoes(l2, c2, &matriz2);
@@ -159,8 +163,8 @@ int main(int argc, char const *argv[])
     //transformando as matrizes em objetos vector<vector> para deixar a busca por
     //elementos mais eficiente
 
-    vector<vector<string>> bufferLinha(*l1),
-        bufferColuna(*l2);
+    bufferLinha.resize(*l1);
+    bufferColuna.resize(*l2);
     for (size_t i = 0; i < *l1; i++)
     {
         for (size_t j = 0; j < *c1; j++)
@@ -168,7 +172,7 @@ int main(int argc, char const *argv[])
             string numero;
             matriz1 >> numero;
             matriz1 >> numero;
-            bufferLinha[i].push_back(numero);
+            bufferLinha[i].push_back(stof(numero));
         }
     }
     for (size_t i = 0; i < *l2; i++)
@@ -178,9 +182,17 @@ int main(int argc, char const *argv[])
             string numero;
             matriz2 >> numero;
             matriz2 >> numero;
-            bufferColuna[i].push_back(numero);
+            bufferColuna[i].push_back(stof(numero));
         }
     }
+    // for (auto e : bufferColuna)
+    // {
+    //     for (auto f : e)
+    //     {
+    //         cout << f << " : ";
+    //     }
+    //     cout << endl;
+    // }
 
     //fechando arquivos
     matriz1.close();
@@ -188,13 +200,16 @@ int main(int argc, char const *argv[])
 
     for (size_t i = 0; i < (*l1 * *c2) / (*p); i++)
     {
-        pid_t pid = fork();
-        if (!pid)
+        cout << "criando filho " << i << endl;
+        int status = pthread_create(&threads[i], NULL, multiplicacao, (void *)(size_t)i);
+        if (!!status)
         {
-            multiplicacao(l1, c1, l2, c2, p, i, &bufferLinha, &bufferColuna);
-            break;
+            cout << "Error: " << status << endl;
+            return (-1);
         }
     }
+
+    pthread_join(threads[(*l1 * *c2) / (*p) - 1], &thread_return);
 
     //liberando memória alocada
     delete l1;
@@ -202,5 +217,6 @@ int main(int argc, char const *argv[])
     delete c1;
     delete c2;
     delete p;
+    delete threads;
     return 0;
 }
