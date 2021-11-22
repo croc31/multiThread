@@ -3,9 +3,9 @@
 #include <fstream>
 #include <vector>
 #include <chrono>
-#include <sys/types.h>
-#include <sys/wait.h>
+#include <pthread.h>
 #include <unistd.h>
+#include <math.h>
 
 using namespace std;
 
@@ -47,7 +47,7 @@ void pegaColuna(const size_t *l, const size_t c, vector<float> *coluna, const ve
 }
 
 //esse método controla todas as chamadas de multiplicação
-void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const size_t *c2, const size_t *p, const size_t o, vector<vector<string>> *matrizLinha, vector<vector<string>> *matrizColuna)
+void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const size_t *c2, const float *p, const size_t o, vector<vector<float>> *matrizLinha, vector<vector<float>> *matrizColuna)
 {
 
     ofstream matrizResul;
@@ -69,17 +69,19 @@ void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const s
     matrizResul << *l1 << " " << *c2 << '\n';
     size_t i, j, count = 0;
     i = int((*p * o) / *c2);
-    j = (*p * o) % *c2;
+    j = int((*p * o)) % *c2;
     while (count < *p)
     {
         //Soma vai armazenar o valor da matriz resultado armazenado na posição ij
         float soma = 0;
-        pegaLinha(i, c1, &linha, matrizLinha);
-        pegaColuna(l2, j, &coluna, matrizColuna);
+        // pegaLinha(i, c1, &linha, matrizLinha);
+        // pegaColuna(l2, j, &coluna, matrizColuna);
         for (size_t k = 0; k < *c1; k++)
         {
-            soma += linha[k] * coluna[k];
+            //soma += linha[k] * coluna[k];
             //cout << linha.size() << " " << coluna.size() << endl;
+
+            soma += (*matrizLinha)[i][k] * (*matrizColuna)[k][j];
         }
         matrizResul << "c" << i + 1 << j + 1 << " " << soma << '\n';
         linha.clear();
@@ -89,7 +91,7 @@ void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const s
         if (j >= *c2)
         {
             i++;
-            j = int((*p * o) / *c2);
+            j = 0;
             if (i >= *l1)
             {
                 break;
@@ -100,23 +102,6 @@ void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const s
     final = std::chrono::steady_clock::now();
     std::chrono::duration<double> duracao = std::chrono::duration_cast<std::chrono::duration<double>>(final - inicio);
     matrizResul << duracao.count();
-    // for (size_t i = 0; i < *l1; i++)
-    // {
-    //     for (size_t j = 0; j < *c2; j++)
-    //     {
-    //         //Soma vai armazenar o valor da matriz resultado armazenado na posição ij
-    //         float soma = 0;
-    //         pegaLinha(i, c1, &linha, &bufferLinha);
-    //         pegaColuna(l2, j, &coluna, &bufferColuna);
-    //         for (size_t k = 0; k < *c2; k++)
-    //         {
-    //             soma += linha[k] * coluna[k];
-    //         }
-    //         *matrizResul << "c" << i + 1 <<j + 1 << " " << soma << '\n';
-    //         linha.clear();
-    //         coluna.clear();
-    //     }
-    // }
 }
 
 int main(int argc, char const *argv[])
@@ -143,8 +128,8 @@ int main(int argc, char const *argv[])
     size_t *l1 = new size_t,
            *c1 = new size_t,
            *l2 = new size_t,
-           *c2 = new size_t,
-           *p = new size_t;
+           *c2 = new size_t;
+    float *p = new float;
     *p = stoi(argv[3]);
     //salvando as dimenções das matrizes
     separaDimencoes(l1, c1, &matriz1);
@@ -159,7 +144,7 @@ int main(int argc, char const *argv[])
     //transformando as matrizes em objetos vector<vector> para deixar a busca por
     //elementos mais eficiente
 
-    vector<vector<string>> bufferLinha(*l1),
+    vector<vector<float>> bufferLinha(*l1),
         bufferColuna(*l2);
     for (size_t i = 0; i < *l1; i++)
     {
@@ -168,7 +153,7 @@ int main(int argc, char const *argv[])
             string numero;
             matriz1 >> numero;
             matriz1 >> numero;
-            bufferLinha[i].push_back(numero);
+            bufferLinha[i].push_back(stof(numero));
         }
     }
     for (size_t i = 0; i < *l2; i++)
@@ -178,15 +163,14 @@ int main(int argc, char const *argv[])
             string numero;
             matriz2 >> numero;
             matriz2 >> numero;
-            bufferColuna[i].push_back(numero);
+            bufferColuna[i].push_back(stof(numero));
         }
     }
 
     //fechando arquivos
     matriz1.close();
     matriz2.close();
-
-    for (size_t i = 0; i < (*l1 * *c2) / (*p); i++)
+    for (size_t i = 0; i < ceil((*l1 * *c2) / (*p)); i++)
     {
         pid_t pid = fork();
         if (pid < 0)

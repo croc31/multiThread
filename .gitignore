@@ -34,3 +34,5 @@
 *.txt
 matrizes
 sequencial
+processos
+thread
