@@ -62,6 +62,8 @@ void *multiplicacao(void *o)
     {
         //Soma vai armazenar o valor da matriz resultado armazenado na posição ij
         float soma = 0;
+
+        //cout << "filho " << params->ordem << " elemento c" << i + 1 << j + 1 << endl;
         for (size_t k = 0; k < *c1; k++)
         {
             soma += params->bufferLinha[i][k] * params->bufferColuna[k][j];
@@ -82,10 +84,12 @@ void *multiplicacao(void *o)
         }
         count++;
     }
+    //cout << "acabou a multiplicação" << endl;
     final = std::chrono::steady_clock::now();
     std::chrono::duration<double> duracao = std::chrono::duration_cast<std::chrono::duration<double>>(final - inicio);
     matrizResul << duracao.count();
-    cout << "fim do filho " << params->ordem << endl;
+    cout << duracao.count() << endl;
+    //cout << "fim do filho " << params->ordem << endl;
     sleep(1);
     pthread_exit(NULL);
 }
@@ -155,7 +159,7 @@ int main(int argc, char const *argv[])
             params[0].bufferColuna[i].push_back(stof(numero));
         }
     }
-    for (size_t i = 0; i < (*l1 * *c2) / (*p); i++)
+    for (size_t i = 1; i < (*l1 * *c2) / (*p); i++)
     {
         params[i].bufferLinha = params[0].bufferLinha;
         params[i].bufferColuna = params[0].bufferColuna;
@@ -164,16 +168,21 @@ int main(int argc, char const *argv[])
     //fechando arquivos
     matriz1.close();
     matriz2.close();
-
+    int count = 5;
     for (size_t i = 0; i < (*l1 * *c2) / (*p); i++)
     {
         params[i].ordem = i;
-        cout << "criando filho " << i << endl;
         int status = pthread_create(&threads[i], NULL, multiplicacao, &params[i]);
         if (!!status)
         {
             cout << "Error: " << status << endl;
             return (-1);
+        }
+        --count;
+        if (!count)
+        {
+            sleep(3);
+            count = 5;
         }
     }
 
@@ -182,7 +191,7 @@ int main(int argc, char const *argv[])
         // pthread_join(threads[(*l1 * *c2) / (*p) - 1], &thread_return);
         pthread_join(threads[i], &thread_return);
     }
-
+    cout << endl;
     //liberando memória alocada
     delete l1;
     delete l2;

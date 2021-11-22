@@ -20,31 +20,6 @@ void separaDimencoes(size_t *l, size_t *c, std::ifstream *stream)
     *stream >> stringAuxiliar;
     *c = stoi(stringAuxiliar);
 }
-//essa função guarda no vector 'linha' a linha numero 'l'
-void pegaLinha(const size_t l, const size_t *c, vector<float> *linha, const vector<vector<string>> *buffer)
-{
-
-    for (size_t j = 0; j < *c; j++)
-    {
-        //o valor l define qual linha será extraída
-        //o valor j percorre toda a linha extraindo cada valor
-        string auxiliar = (*buffer)[l][j];
-        linha->push_back(stof(auxiliar));
-    }
-}
-//essa função guarda no vector 'coluna' a coluna numero 'c'
-void pegaColuna(const size_t *l, const size_t c, vector<float> *coluna, const vector<vector<string>> *buffer)
-{
-
-    for (size_t j = 0; j < *l; j++)
-    {
-        //o valor c define qual coluna será estraída
-        //o valor j percorre toda a coluna extraindo cada valor
-        string auxiliar = (*buffer)[j][c];
-
-        coluna->push_back(stof(auxiliar));
-    }
-}
 
 //esse método controla todas as chamadas de multiplicação
 void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const size_t *c2, const float *p, const size_t o, vector<vector<float>> *matrizLinha, vector<vector<float>> *matrizColuna)
@@ -78,8 +53,6 @@ void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const s
         // pegaColuna(l2, j, &coluna, matrizColuna);
         for (size_t k = 0; k < *c1; k++)
         {
-            //soma += linha[k] * coluna[k];
-            //cout << linha.size() << " " << coluna.size() << endl;
 
             soma += (*matrizLinha)[i][k] * (*matrizColuna)[k][j];
         }
@@ -102,6 +75,7 @@ void multiplicacao(const size_t *l1, const size_t *c1, const size_t *l2, const s
     final = std::chrono::steady_clock::now();
     std::chrono::duration<double> duracao = std::chrono::duration_cast<std::chrono::duration<double>>(final - inicio);
     matrizResul << duracao.count();
+    cout << duracao.count();
 }
 
 int main(int argc, char const *argv[])
@@ -183,6 +157,7 @@ int main(int argc, char const *argv[])
             break;
         }
     }
+    cout << endl;
 
     //cout << "o processo terminou a execução " << endl;
     //liberando memória alocada

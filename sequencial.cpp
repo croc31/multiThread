@@ -148,8 +148,10 @@ int main(int argc, char const *argv[])
     inicio = std::chrono::steady_clock::now();
     multiplicacao(&matriz1, &matriz2, &resul);
     final = std::chrono::steady_clock::now();
+
     std::chrono::duration<double> duracao = std::chrono::duration_cast<std::chrono::duration<double>>(final - inicio);
     resul << duracao.count();
+    cout << duracao.count() << endl;
     matriz1.close();
     matriz2.close();
     resul.close();
